@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { addMonths, format } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { eventsOnDay, fmtTime, isToday, monthGrid, sameMonth } from "@/lib/hub-dates";
 import { type HubEvent, useHubStore } from "@/lib/hub-store";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,12 @@ export function MonthBoard({
   now,
   events,
   onOpenEvent,
+  onQuickAdd,
 }: {
   now: Date;
   events: HubEvent[];
   onOpenEvent: (event: HubEvent) => void;
+  onQuickAdd: (day: Date) => void;
 }) {
   const [cursor, setCursor] = useState(() => now);
   const [selected, setSelected] = useState(() => now);
@@ -114,9 +116,8 @@ export function MonthBoard({
           const inMonth = sameMonth(day, cursor);
           const picked = day.toDateString() === selected.toDateString();
           return (
-            <button
+            <div
               key={day.toISOString()}
-              type="button"
               onClick={() => setSelected(day)}
               className={cn(
                 "flex min-h-16 flex-col rounded-md border p-1.5 text-left sm:min-h-24",
@@ -125,8 +126,29 @@ export function MonthBoard({
                 picked && "bg-paper-2",
               )}
             >
-              <span className="font-display text-sm font-semibold tabular-nums">
-                {format(day, "d")}
+              <span className="flex items-center justify-between gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSelected(day)}
+                  className="font-display text-sm font-semibold tabular-nums"
+                  aria-pressed={picked}
+                  aria-label={format(day, "EEEE d MMMM")}
+                >
+                  {format(day, "d")}
+                </button>
+                {picked ? (
+                  <button
+                    type="button"
+                    aria-label={`Quick add on ${format(day, "d MMMM")}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onQuickAdd(day);
+                    }}
+                    className="inline-flex size-7 items-center justify-center rounded-full bg-forest text-cream"
+                  >
+                    <Plus className="size-4" />
+                  </button>
+                ) : null}
               </span>
               <span className="mt-1 flex flex-col gap-0.5 overflow-hidden">
                 {items.slice(0, 3).map((event) => {
@@ -150,15 +172,25 @@ export function MonthBoard({
                   </span>
                 ) : null}
               </span>
-            </button>
+            </div>
           );
         })}
       </div>
 
       <section className="rounded-xl border border-line bg-panel p-4 shadow-panel">
-        <h3 className="mb-2 text-lg font-semibold text-ink">
-          {format(selected, "EEEE d MMMM")}
-        </h3>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-ink">
+            {format(selected, "EEEE d MMMM")}
+          </h3>
+          <Button
+            type="button"
+            size="icon"
+            aria-label={`Quick add on ${format(selected, "d MMMM")}`}
+            onClick={() => onQuickAdd(selected)}
+          >
+            <Plus />
+          </Button>
+        </div>
         {selectedEvents.length === 0 ? (
           <p className="font-sans text-sm text-muted">Nothing on this day.</p>
         ) : (

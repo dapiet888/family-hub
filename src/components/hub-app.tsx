@@ -51,7 +51,15 @@ function HubReady({ view }: { view: HubView }) {
   >(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<HubEvent | null>(null);
+  const [draftStart, setDraftStart] = useState<string | null>(null);
   useFamilySync();
+
+  function quickAdd(day: Date) {
+    const start = new Date(day);
+    start.setHours(9, 0, 0, 0);
+    setDraftStart(start.toISOString());
+    setAddOpen("event");
+  }
 
   const [googleOnThisScreen, setGoogleOnThisScreen] = useState(false);
   useEffect(() => {
@@ -177,10 +185,20 @@ function HubReady({ view }: { view: HubView }) {
           />
         )}
         {view === "week" && (
-          <WeekBoard now={now} events={events} onOpenEvent={setEditingEvent} />
+          <WeekBoard
+            now={now}
+            events={events}
+            onOpenEvent={setEditingEvent}
+            onQuickAdd={quickAdd}
+          />
         )}
         {view === "month" && (
-          <MonthBoard now={now} events={events} onOpenEvent={setEditingEvent} />
+          <MonthBoard
+            now={now}
+            events={events}
+            onOpenEvent={setEditingEvent}
+            onQuickAdd={quickAdd}
+          />
         )}
         {view === "lists" && <ListsBoard />}
       </main>
@@ -209,11 +227,15 @@ function HubReady({ view }: { view: HubView }) {
 
       <AddDialogs
         addOpen={addOpen}
-        setAddOpen={setAddOpen}
+        setAddOpen={(value) => {
+          if (value !== "event") setDraftStart(null);
+          setAddOpen(value);
+        }}
         settingsOpen={settingsOpen}
         setSettingsOpen={setSettingsOpen}
         editingEvent={editingEvent}
         setEditingEvent={setEditingEvent}
+        draftStart={draftStart}
       />
     </div>
   );

@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { format } from "date-fns";
+import { Plus } from "lucide-react";
 import { eventsOnDay, fmtTime, isToday, weekDays } from "@/lib/hub-dates";
 import { type HubEvent, useHubStore } from "@/lib/hub-store";
 import { cn } from "@/lib/utils";
@@ -7,15 +9,18 @@ export function WeekBoard({
   now,
   events,
   onOpenEvent,
+  onQuickAdd,
 }: {
   now: Date;
   events: HubEvent[];
   onOpenEvent: (event: HubEvent) => void;
+  onQuickAdd: (day: Date) => void;
 }) {
   const people = useHubStore((s) => s.people);
   const filter = useHubStore((s) => s.personFilter);
   const setFilter = useHubStore((s) => s.setPersonFilter);
   const timezone = useHubStore((s) => s.timezone);
+  const [selected, setSelected] = useState(() => now);
   const days = weekDays(now);
   const visible = filter
     ? events.filter((event) => event.personId === filter)
@@ -61,21 +66,44 @@ export function WeekBoard({
         {days.map((day) => {
           const items = eventsOnDay(visible, day);
           const today = isToday(day);
+          const picked = day.toDateString() === selected.toDateString();
           return (
             <section
               key={day.toISOString()}
+              onClick={() => setSelected(day)}
               className={cn(
                 "flex min-h-40 flex-col rounded-lg border border-line bg-panel p-2.5 shadow-panel",
                 today && "ring-2 ring-forest ring-offset-2 ring-offset-paper",
+                picked && "bg-paper-2",
               )}
             >
-              <header className="mb-2 font-sans">
-                <p className="text-xs uppercase tracking-wide text-muted">
-                  {format(day, "EEE")}
-                </p>
-                <p className="font-display text-lg font-semibold text-ink">
-                  {format(day, "d")}
-                </p>
+              <header className="mb-2 flex items-start justify-between gap-2 font-sans">
+                <button
+                  type="button"
+                  onClick={() => setSelected(day)}
+                  className="text-left"
+                  aria-pressed={picked}
+                >
+                  <p className="text-xs uppercase tracking-wide text-muted">
+                    {format(day, "EEE")}
+                  </p>
+                  <p className="font-display text-lg font-semibold text-ink">
+                    {format(day, "d")}
+                  </p>
+                </button>
+                {picked ? (
+                  <button
+                    type="button"
+                    aria-label={`Quick add on ${format(day, "EEEE d")}`}
+                    onClick={(click) => {
+                      click.stopPropagation();
+                      onQuickAdd(day);
+                    }}
+                    className="inline-flex size-8 items-center justify-center rounded-full bg-forest text-cream"
+                  >
+                    <Plus className="size-4" />
+                  </button>
+                ) : null}
               </header>
               <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto">
                 {items.length === 0 ? (
@@ -87,7 +115,10 @@ export function WeekBoard({
                       <button
                         key={event.id}
                         type="button"
-                        onClick={() => onOpenEvent(event)}
+                        onClick={(click) => {
+                          click.stopPropagation();
+                          onOpenEvent(event);
+                        }}
                         className="rounded-md border border-transparent p-2 text-left font-sans text-sm leading-snug text-ink"
                         style={{
                           background: `${person?.color ?? "var(--color-forest)"}22`,

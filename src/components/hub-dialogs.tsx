@@ -29,6 +29,7 @@ export function AddDialogs({
   setSettingsOpen,
   editingEvent,
   setEditingEvent,
+  draftStart,
 }: {
   addOpen: "choose" | "event" | "item" | "ics" | "mail" | "check" | null;
   setAddOpen: (value: "choose" | "event" | "item" | "ics" | "mail" | "check" | null) => void;
@@ -36,6 +37,7 @@ export function AddDialogs({
   setSettingsOpen: (value: boolean) => void;
   editingEvent: HubEvent | null;
   setEditingEvent: (value: HubEvent | null) => void;
+  draftStart?: string | null;
 }) {
   return (
     <>
@@ -57,6 +59,7 @@ export function AddDialogs({
           ) : null}
           {addOpen === "event" ? (
             <EventForm
+              startAt={draftStart ?? undefined}
               onDone={() => setAddOpen(null)}
               onCancel={() => setAddOpen(null)}
             />
@@ -141,10 +144,12 @@ function ChooseForm({
 
 function EventForm({
   event,
+  startAt,
   onDone,
   onCancel,
 }: {
   event?: HubEvent;
+  startAt?: string;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -154,7 +159,7 @@ function EventForm({
   const removeEvent = useHubStore((s) => s.removeEvent);
   const readOnly = event?.source === "google";
   const defaultStart = toDatetimeLocal(
-    event?.start ?? addHours(setMinutes(startOfHour(new Date()), 0), 1).toISOString(),
+    event?.start ?? startAt ?? addHours(setMinutes(startOfHour(new Date()), 0), 1).toISOString(),
   );
   const [remindMinutes, setRemindMinutes] = useState<number | null>(
     event?.remindMinutes ?? null,
