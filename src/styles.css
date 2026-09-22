@@ -22,6 +22,34 @@
   --ease-out-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+html[data-theme="spruce"] {
+  --color-paper: #e4eee8;
+  --color-paper-2: #d0e0d6;
+  --color-panel: #f7fbf8;
+  --color-ink: #13241c;
+  --color-muted: #5a7066;
+  --color-line: #b7cdc0;
+  --color-forest: #1e4d3c;
+  --color-forest-2: #16392c;
+  --color-cream: #f4faf6;
+  color-scheme: light;
+}
+
+html[data-theme="night"] {
+  --color-paper: #141311;
+  --color-paper-2: #221f1b;
+  --color-panel: #1c1a17;
+  --color-ink: #f3eee6;
+  --color-muted: #a89f94;
+  --color-line: #3a342c;
+  --color-forest: #3f6f64;
+  --color-forest-2: #2c524a;
+  --color-cream: #f6f1e8;
+  --color-danger: #d47164;
+  --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

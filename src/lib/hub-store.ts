@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { addDays, format, startOfDay } from "date-fns";
 import { SHOPPING_CATALOGUE } from "./catalogue";
+import { type HubTheme } from "./themes";
 
 export type PersonRole = "adult" | "child";
 
@@ -255,6 +256,7 @@ function seedLists(): HubList[] {
 type HubState = {
   householdName: string;
   timezone: string;
+  theme: HubTheme;
   people: Person[];
   events: HubEvent[];
   lists: HubList[];
@@ -275,6 +277,7 @@ type HubState = {
   removeItem: (listId: string, itemId: string) => void;
   clearDone: (listId: string) => void;
   updateHousehold: (name: string) => void;
+  setTheme: (theme: HubTheme) => void;
   updatePerson: (id: string, patch: Partial<Person>) => void;
   setPersonFilter: (id: string | null) => void;
 };
@@ -284,6 +287,7 @@ export const useHubStore = create<HubState>()(
     (set) => ({
       householdName: "Our house",
       timezone: "Europe/London",
+      theme: "paper",
       people: DEFAULT_PEOPLE,
       events: seedEvents(new Date()),
       lists: seedLists(),
@@ -429,6 +433,7 @@ export const useHubStore = create<HubState>()(
           };
         }),
       updateHousehold: (name) => set({ householdName: name }),
+      setTheme: (theme) => set({ theme }),
       updatePerson: (id, patch) =>
         set((s) => ({
           people: s.people.map((p) => (p.id === id ? { ...p, ...patch } : p)),
@@ -450,6 +455,9 @@ export const useHubStore = create<HubState>()(
         state.itemUses ??= {};
         state.customItems ??= [];
         state.lastLists ??= {};
+        if (state.theme !== "paper" && state.theme !== "spruce" && state.theme !== "night") {
+          state.theme = "paper";
+        }
         if (Object.keys(state.itemUses).length === 0) {
           for (const list of state.lists) {
             if (list.kind !== "shopping") continue;

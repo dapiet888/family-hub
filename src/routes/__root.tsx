@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   createRootRoute,
   HeadContent,
@@ -8,6 +8,8 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth/provider";
+import { useHubStore } from "@/lib/hub-store";
+import { isHubTheme, THEME_COLORS } from "@/lib/themes";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
@@ -60,13 +62,32 @@ export const Route = createRootRoute({
   component: RootDocument,
 });
 
+function ThemeSync() {
+  const theme = useHubStore((s) => s.theme);
+  useEffect(() => {
+    const next = isHubTheme(theme) ? theme : "paper";
+    document.documentElement.dataset.theme = next;
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", THEME_COLORS[next]);
+  }, [theme]);
+  return null;
+}
+
 function RootDocument() {
   return (
     <html lang="en-GB" className="antialiased" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=JSON.parse(localStorage.getItem('family-hub-v1')||'{}').state.theme;if(t==='paper'||t==='spruce'||t==='night')document.documentElement.dataset.theme=t}catch(e){}",
+          }}
+        />
       </head>
       <body className="bg-paper text-ink">
+        <ThemeSync />
         <PreviewHostBridge />
         <AuthProvider>
           <QueryProvider>

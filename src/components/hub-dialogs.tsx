@@ -8,6 +8,7 @@ import {
   type HubEvent,
   useHubStore,
 } from "@/lib/hub-store";
+import { HUB_THEMES } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -378,6 +379,8 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
   const people = useHubStore((s) => s.people);
   const updateHousehold = useHubStore((s) => s.updateHousehold);
   const updatePerson = useHubStore((s) => s.updatePerson);
+  const theme = useHubStore((s) => s.theme);
+  const setTheme = useHubStore((s) => s.setTheme);
   const [name, setName] = useState(householdName);
 
   useEffect(() => {
@@ -407,6 +410,26 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
       </DialogHeader>
       <Field label="House name">
         <Input value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <Field label="Theme">
+        <div className="grid grid-cols-3 gap-2">
+          {HUB_THEMES.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={theme === option.id}
+              onClick={() => setTheme(option.id)}
+              className={`flex h-16 flex-col items-start justify-center rounded-lg border px-3 text-left font-sans ${
+                theme === option.id
+                  ? "border-forest bg-forest text-cream"
+                  : "border-line bg-paper text-ink"
+              }`}
+            >
+              <span className="font-medium">{option.label}</span>
+              <span className="text-sm opacity-80">{option.hint}</span>
+            </button>
+          ))}
+        </div>
       </Field>
       {people.map((person) => (
         <Field
