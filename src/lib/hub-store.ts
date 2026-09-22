@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { addDays, format, startOfDay } from "date-fns";
 import { SHOPPING_CATALOGUE } from "./catalogue";
 import { isHubTheme, type HubTheme } from "./themes";
+import type { BoardDoc, BoardOp } from "./sync/board";
 
 export type PersonRole = "adult" | "child";
 
@@ -265,6 +266,9 @@ type HubState = {
   itemUses: Record<string, number>;
   customItems: string[];
   lastLists: Record<string, string[]>;
+  syncCode: string | null;
+  syncSeq: number;
+  outbox: BoardOp[];
   addEvent: (input: Omit<HubEvent, "id" | "source">) => void;
   updateEvent: (id: string, patch: Partial<HubEvent>) => void;
   removeEvent: (id: string) => void;
@@ -284,6 +288,11 @@ type HubState = {
   setTheme: (theme: HubTheme) => void;
   updatePerson: (id: string, patch: Partial<Person>) => void;
   setPersonFilter: (id: string | null) => void;
+  setSync: (code: string | null, seq?: number) => void;
+  setSyncSeq: (seq: number) => void;
+  queueOps: (ops: BoardOp[]) => void;
+  ackOps: (ids: string[], seq: number) => void;
+  applyBoard: (doc: BoardDoc) => void;
 };
 
 export const useHubStore = create<HubState>()(
@@ -300,6 +309,9 @@ export const useHubStore = create<HubState>()(
       itemUses: {},
       customItems: [],
       lastLists: {},
+      syncCode: null,
+      syncSeq: 0,
+      outbox: [],
       addEvent: (input) =>
         set((s) => ({
           events: [...s.events, { ...input, id: uid("e"), source: "local" }],
@@ -466,6 +478,27 @@ export const useHubStore = create<HubState>()(
           people: s.people.map((p) => (p.id === id ? { ...p, ...patch } : p)),
         })),
       setPersonFilter: (id) => set({ personFilter: id }),
+      setSync: (code, seq = 0) => set({ syncCode: code, syncSeq: seq, outbox: [] }),
+      setSyncSeq: (seq) => set({ syncSeq: seq }),
+      queueOps: (ops) => set((s) => ({ outbox: [...s.outbox, ...ops].slice(-80) })),
+      ackOps: (ids, seq) =>
+        set((s) => ({
+          syncSeq: seq,
+          outbox: s.outbox.filter((op) => !ids.includes(op.id)),
+        })),
+      applyBoard: (doc) =>
+        set({
+          householdName: doc.householdName,
+          timezone: doc.timezone,
+          theme: isHubTheme(doc.theme) ? doc.theme : "paper",
+          people: doc.people,
+          events: doc.events,
+          lists: doc.lists,
+          activeListId: doc.activeListId,
+          itemUses: doc.itemUses ?? {},
+          customItems: doc.customItems ?? [],
+          lastLists: doc.lastLists ?? {},
+        }),
     }),
     {
       name: "family-hub-v1",
@@ -482,6 +515,9 @@ export const useHubStore = create<HubState>()(
         state.itemUses ??= {};
         state.customItems ??= [];
         state.lastLists ??= {};
+        state.outbox ??= [];
+        state.syncCode ??= null;
+        state.syncSeq ??= 0;
         if (!isHubTheme(state.theme)) state.theme = "paper";
         if (Object.keys(state.itemUses).length === 0) {
           for (const list of state.lists) {

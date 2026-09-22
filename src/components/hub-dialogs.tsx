@@ -9,6 +9,7 @@ import {
   useHubStore,
 } from "@/lib/hub-store";
 import { HUB_THEMES } from "@/lib/themes";
+import { FamilySyncPanel } from "@/components/family-sync";
 import { CheckForm, IcsForm, MailForm } from "@/components/bring-in";
 import { Button } from "@/components/ui/button";
 import {
@@ -430,6 +431,7 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
           One adult Google calendar is enough for this kitchen screen.
         </DialogDescription>
       </DialogHeader>
+      <FamilySyncPanel />
       <Field label="House name">
         <Input value={name} onChange={(e) => setName(e.target.value)} />
       </Field>

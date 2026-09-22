@@ -17,6 +17,7 @@ import { fmtClock, fmtDay, guessPersonId } from "@/lib/hub-dates";
 import { reminderLabel } from "@/lib/catalogue";
 import { type HubEvent, useHubStore } from "@/lib/hub-store";
 import { Button } from "@/components/ui/button";
+import { useFamilySync } from "@/lib/sync/client";
 import { AddDialogs } from "@/components/hub-dialogs";
 import { ListsBoard } from "@/components/lists-board";
 import { MonthBoard } from "@/components/month-board";
@@ -50,6 +51,7 @@ function HubReady({ view }: { view: HubView }) {
   >(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<HubEvent | null>(null);
+  useFamilySync();
 
   const calendarQuery = useQuery({
     queryKey: ["google-calendar"],
