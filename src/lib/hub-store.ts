@@ -1,0 +1,470 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { addDays, format, startOfDay } from "date-fns";
+import { SHOPPING_CATALOGUE } from "./catalogue";
+
+export type PersonRole = "adult" | "child";
+
+export type Person = {
+  id: string;
+  name: string;
+  color: string;
+  role: PersonRole;
+};
+
+export type HubEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end?: string;
+  allDay?: boolean;
+  location?: string;
+  personId: string;
+  taggedIds?: string[];
+  remindMinutes?: number | null;
+  source: "local" | "google";
+  calendarId?: string;
+  calendarName?: string;
+};
+
+export type ListKind = "shopping" | "chores" | "custom";
+
+export type ListItem = {
+  id: string;
+  text: string;
+  done: boolean;
+  personId?: string;
+  qty?: string;
+};
+
+export type HubList = {
+  id: string;
+  name: string;
+  kind: ListKind;
+  items: ListItem[];
+};
+
+export const PERSON_SWATCHES = [
+  "#c45c3e",
+  "#2a4a46",
+  "#b0894f",
+  "#5e8f88",
+  "#6b5344",
+  "#3d5a80",
+  "#7a4e6d",
+  "#4a6741",
+] as const;
+
+export const DEFAULT_PEOPLE: Person[] = [
+  { id: "p1", name: "Parent 1", color: PERSON_SWATCHES[0], role: "adult" },
+  { id: "p2", name: "Parent 2", color: PERSON_SWATCHES[1], role: "adult" },
+  { id: "p3", name: "Child 1", color: PERSON_SWATCHES[2], role: "child" },
+  { id: "p4", name: "Child 2", color: PERSON_SWATCHES[3], role: "child" },
+];
+
+function uid(prefix: string) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function norm(text: string) {
+  return text.trim().toLowerCase();
+}
+
+function uniqueNames(names: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const name of names) {
+    const key = norm(name);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(name.trim());
+  }
+  return out;
+}
+
+function bumpUses(uses: Record<string, number>, name: string) {
+  const key = norm(name);
+  if (!key) return uses;
+  return { ...uses, [key]: (uses[key] ?? 0) + 1 };
+}
+
+function rememberCustom(customItems: string[], name: string) {
+  const trimmed = name.trim();
+  const key = norm(trimmed);
+  if (!key) return customItems;
+  if (SHOPPING_CATALOGUE.some((item) => norm(item.name) === key)) return customItems;
+  if (customItems.some((item) => norm(item) === key)) return customItems;
+  return [trimmed, ...customItems];
+}
+
+function openNames(items: ListItem[]) {
+  return uniqueNames(items.filter((item) => !item.done).map((item) => item.text));
+}
+
+function placeShoppingItem(items: ListItem[], text: string, personId?: string) {
+  const key = norm(text);
+  const open = items.find((item) => !item.done && norm(item.text) === key);
+  if (open) return items;
+  const done = items.find((item) => item.done && norm(item.text) === key);
+  if (done) {
+    return items.map((item) => (item.id === done.id ? { ...item, done: false } : item));
+  }
+  return [{ id: uid("i"), text: text.trim(), done: false, personId }, ...items];
+}
+
+function rememberLast(
+  lastLists: Record<string, string[]>,
+  listId: string,
+  before: ListItem[],
+  after: ListItem[],
+) {
+  const prev = openNames(before);
+  const next = openNames(after);
+  if (prev.length > 0 && next.length === 0) {
+    return { ...lastLists, [listId]: prev };
+  }
+  return lastLists;
+}
+
+function atTime(day: Date, hour: number, minute: number) {
+  const ymd = format(day, "yyyy-MM-dd");
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(minute).padStart(2, "0");
+  const noonUtc = new Date(`${ymd}T12:00:00Z`);
+  const londonNoonHour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      hour: "2-digit",
+      hour12: false,
+      hourCycle: "h23",
+    }).format(noonUtc),
+  );
+  const offset = londonNoonHour - 12;
+  const sign = offset >= 0 ? "+" : "-";
+  const off = String(Math.abs(offset)).padStart(2, "0");
+  return new Date(`${ymd}T${hh}:${mm}:00${sign}${off}:00`).toISOString();
+}
+
+function seedEvents(now: Date): HubEvent[] {
+  const today = startOfDay(now);
+  const d = (n: number) => addDays(today, n);
+  return [
+    {
+      id: "seed-school-run",
+      title: "School run",
+      start: atTime(d(0), 8, 10),
+      end: atTime(d(0), 8, 40),
+      location: "School gate",
+      personId: "p1",
+      source: "local",
+    },
+    {
+      id: "seed-pickup",
+      title: "Pickup",
+      start: atTime(d(0), 15, 40),
+      end: atTime(d(0), 16, 10),
+      location: "School gate",
+      personId: "p2",
+      source: "local",
+    },
+    {
+      id: "seed-football",
+      title: "Football club",
+      start: atTime(d(0), 16, 30),
+      end: atTime(d(0), 17, 30),
+      location: "Playing fields",
+      personId: "p3",
+      source: "local",
+    },
+    {
+      id: "seed-assembly",
+      title: "Class assembly",
+      start: atTime(d(1), 9, 0),
+      end: atTime(d(1), 9, 40),
+      location: "Hall",
+      personId: "p4",
+      source: "local",
+    },
+    {
+      id: "seed-swim",
+      title: "Swimming",
+      start: atTime(d(2), 18, 0),
+      end: atTime(d(2), 18, 45),
+      location: "Leisure centre",
+      personId: "p4",
+      source: "local",
+    },
+    {
+      id: "seed-dentist",
+      title: "Dentist",
+      start: atTime(d(3), 10, 30),
+      end: atTime(d(3), 11, 0),
+      location: "High Street practice",
+      personId: "p3",
+      source: "local",
+    },
+    {
+      id: "seed-shop",
+      title: "Food shop",
+      start: atTime(d(5), 9, 0),
+      end: atTime(d(5), 10, 0),
+      location: "Tesco",
+      personId: "p1",
+      source: "local",
+    },
+    {
+      id: "seed-pe",
+      title: "PE kit",
+      start: format(d(2), "yyyy-MM-dd"),
+      allDay: true,
+      personId: "p3",
+      source: "local",
+    },
+  ];
+}
+
+function seedLists(): HubList[] {
+  return [
+    {
+      id: "shopping",
+      name: "Shopping",
+      kind: "shopping",
+      items: [
+        { id: "s1", text: "Milk", done: false },
+        { id: "s2", text: "Bread", done: false },
+        { id: "s3", text: "Bananas", done: false },
+        { id: "s4", text: "Oat milk", done: false },
+        { id: "s5", text: "School snacks", done: false },
+        { id: "s6", text: "Washing-up liquid", done: false },
+      ],
+    },
+    {
+      id: "chores",
+      name: "Chores",
+      kind: "chores",
+      items: [
+        { id: "c1", text: "Unload dishwasher", done: false, personId: "p3" },
+        { id: "c2", text: "Put bins out", done: false, personId: "p2" },
+        { id: "c3", text: "Tidy bedrooms", done: false, personId: "p4" },
+        { id: "c4", text: "Pack PE kits", done: false, personId: "p1" },
+      ],
+    },
+  ];
+}
+
+type HubState = {
+  householdName: string;
+  timezone: string;
+  people: Person[];
+  events: HubEvent[];
+  lists: HubList[];
+  activeListId: string;
+  personFilter: string | null;
+  itemUses: Record<string, number>;
+  customItems: string[];
+  lastLists: Record<string, string[]>;
+  addEvent: (input: Omit<HubEvent, "id" | "source">) => void;
+  updateEvent: (id: string, patch: Partial<HubEvent>) => void;
+  removeEvent: (id: string) => void;
+  addList: (name: string) => void;
+  setActiveList: (id: string) => void;
+  addItem: (listId: string, item: Omit<ListItem, "id" | "done">) => void;
+  toggleCatalogueItem: (listId: string, text: string) => void;
+  loadLastList: (listId: string) => void;
+  toggleItem: (listId: string, itemId: string) => void;
+  removeItem: (listId: string, itemId: string) => void;
+  clearDone: (listId: string) => void;
+  updateHousehold: (name: string) => void;
+  updatePerson: (id: string, patch: Partial<Person>) => void;
+  setPersonFilter: (id: string | null) => void;
+};
+
+export const useHubStore = create<HubState>()(
+  persist(
+    (set) => ({
+      householdName: "Our house",
+      timezone: "Europe/London",
+      people: DEFAULT_PEOPLE,
+      events: seedEvents(new Date()),
+      lists: seedLists(),
+      activeListId: "shopping",
+      personFilter: null,
+      itemUses: {},
+      customItems: [],
+      lastLists: {},
+      addEvent: (input) =>
+        set((s) => ({
+          events: [...s.events, { ...input, id: uid("e"), source: "local" }],
+        })),
+      updateEvent: (id, patch) =>
+        set((s) => ({
+          events: s.events.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+        })),
+      removeEvent: (id) =>
+        set((s) => ({ events: s.events.filter((e) => e.id !== id) })),
+      addList: (name) => {
+        const id = uid("l");
+        set((s) => ({
+          lists: [...s.lists, { id, name, kind: "custom", items: [] }],
+          activeListId: id,
+        }));
+      },
+      setActiveList: (id) => set({ activeListId: id }),
+      addItem: (listId, item) =>
+        set((s) => {
+          const text = item.text.trim();
+          if (!text) return s;
+          let added = false;
+          const lists = s.lists.map((entry) => {
+            if (entry.id !== listId) return entry;
+            if (entry.kind === "shopping") {
+              const items = placeShoppingItem(entry.items, text, item.personId);
+              if (items !== entry.items) added = true;
+              return { ...entry, items };
+            }
+            added = true;
+            return {
+              ...entry,
+              items: [{ ...item, text, id: uid("i"), done: false }, ...entry.items],
+            };
+          });
+          const shopping = s.lists.find((entry) => entry.id === listId)?.kind === "shopping";
+          return {
+            lists,
+            itemUses: shopping && added ? bumpUses(s.itemUses ?? {}, text) : s.itemUses,
+            customItems: shopping && added ? rememberCustom(s.customItems ?? [], text) : s.customItems,
+          };
+        }),
+      toggleCatalogueItem: (listId, text) =>
+        set((s) => {
+          const name = text.trim();
+          if (!name) return s;
+          let added = false;
+          const lists = s.lists.map((list) => {
+            if (list.id !== listId) return list;
+            const open = list.items.find(
+              (item) => !item.done && norm(item.text) === norm(name),
+            );
+            if (open) {
+              const items = list.items.filter((item) => item.id !== open.id);
+              return { ...list, items };
+            }
+            added = true;
+            return { ...list, items: placeShoppingItem(list.items, name) };
+          });
+          const before = s.lists.find((list) => list.id === listId);
+          const after = lists.find((list) => list.id === listId);
+          return {
+            lists,
+            itemUses: added ? bumpUses(s.itemUses ?? {}, name) : s.itemUses,
+            customItems: added ? rememberCustom(s.customItems ?? [], name) : s.customItems,
+            lastLists: before && after ? rememberLast(s.lastLists ?? {}, listId, before.items, after.items) : s.lastLists,
+          };
+        }),
+      loadLastList: (listId) =>
+        set((s) => {
+          const names = s.lastLists?.[listId] ?? [];
+          if (!names.length) return s;
+          const list = s.lists.find((entry) => entry.id === listId);
+          if (!list) return s;
+          let items = list.items;
+          let uses = s.itemUses ?? {};
+          let custom = s.customItems ?? [];
+          for (const name of names) {
+            const already = items.some((item) => !item.done && norm(item.text) === norm(name));
+            if (already) continue;
+            items = placeShoppingItem(items, name);
+            uses = bumpUses(uses, name);
+            custom = rememberCustom(custom, name);
+          }
+          return {
+            itemUses: uses,
+            customItems: custom,
+            lists: s.lists.map((entry) => (entry.id === listId ? { ...entry, items } : entry)),
+          };
+        }),
+      toggleItem: (listId, itemId) =>
+        set((s) => ({
+          lists: s.lists.map((list) =>
+            list.id === listId
+              ? {
+                  ...list,
+                  items: list.items.map((item) =>
+                    item.id === itemId ? { ...item, done: !item.done } : item,
+                  ),
+                }
+              : list,
+          ),
+        })),
+      removeItem: (listId, itemId) =>
+        set((s) => ({
+          lists: s.lists.map((list) =>
+            list.id === listId
+              ? { ...list, items: list.items.filter((i) => i.id !== itemId) }
+              : list,
+          ),
+          lastLists: (() => {
+            const list = s.lists.find((entry) => entry.id === listId);
+            if (!list) return s.lastLists;
+            const items = list.items.filter((i) => i.id !== itemId);
+            return rememberLast(s.lastLists ?? {}, listId, list.items, items);
+          })(),
+        })),
+      clearDone: (listId) =>
+        set((s) => {
+          const list = s.lists.find((entry) => entry.id === listId);
+          const doneNames = uniqueNames((list?.items ?? []).map((item) => item.text));
+          const finished = (list?.items ?? []).some((item) => item.done);
+          const lastLists =
+            finished && doneNames.length > 0
+              ? { ...(s.lastLists ?? {}), [listId]: doneNames }
+              : s.lastLists;
+          return {
+            lastLists,
+            lists: s.lists.map((entry) =>
+              entry.id === listId
+                ? { ...entry, items: entry.items.filter((i) => !i.done) }
+                : entry,
+            ),
+          };
+        }),
+      updateHousehold: (name) => set({ householdName: name }),
+      updatePerson: (id, patch) =>
+        set((s) => ({
+          people: s.people.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        })),
+      setPersonFilter: (id) => set({ personFilter: id }),
+    }),
+    {
+      name: "family-hub-v1",
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        const fresh = seedEvents(new Date());
+        const map = new Map(fresh.map((event) => [event.id, event]));
+        state.events = state.events.map((event) => {
+          const next = map.get(event.id);
+          return next
+            ? { ...event, start: next.start, end: next.end, allDay: next.allDay }
+            : event;
+        });
+        state.itemUses ??= {};
+        state.customItems ??= [];
+        state.lastLists ??= {};
+        if (Object.keys(state.itemUses).length === 0) {
+          for (const list of state.lists) {
+            if (list.kind !== "shopping") continue;
+            for (const item of list.items) {
+              const key = item.text.trim().toLowerCase();
+              if (!key) continue;
+              state.itemUses[key] = (state.itemUses[key] ?? 0) + 1;
+            }
+          }
+        }
+      },
+    },
+  ),
+);
+
+export function usePerson(id: string | undefined) {
+  return useHubStore((s) => s.people.find((p) => p.id === id) ?? s.people[0]);
+}
