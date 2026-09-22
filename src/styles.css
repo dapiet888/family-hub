@@ -50,6 +50,218 @@ html[data-theme="night"] {
   color-scheme: dark;
 }
 
+html[data-theme="midnight"] {
+  --color-paper: #120f1c;
+  --color-paper-2: #1c1730;
+  --color-panel: #191428;
+  --color-ink: #f4efe8;
+  --color-muted: #b3a8c9;
+  --color-line: #342c4d;
+  --color-forest: #5b4db8;
+  --color-forest-2: #45389a;
+  --color-cream: #f6f1e8;
+  color-scheme: dark;
+}
+
+html[data-theme="boardroom"] {
+  --color-paper: #e8eef5;
+  --color-paper-2: #d5e0ec;
+  --color-panel: #f7fafc;
+  --color-ink: #122033;
+  --color-muted: #5c6b7d;
+  --color-line: #c3d0de;
+  --color-forest: #1e3a5f;
+  --color-forest-2: #162c49;
+  --color-cream: #f4f7fb;
+}
+
+html[data-theme="slate"] {
+  --color-paper: #eef1f6;
+  --color-paper-2: #e2e8f0;
+  --color-panel: #f8fafc;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #d5dde8;
+  --color-forest: #334155;
+  --color-forest-2: #1e293b;
+  --color-cream: #f8fafc;
+}
+
+html[data-theme="carbon"] {
+  --color-paper: #111111;
+  --color-paper-2: #1c1c1c;
+  --color-panel: #171717;
+  --color-ink: #f5f5f4;
+  --color-muted: #a3a3a3;
+  --color-line: #2e2e2e;
+  --color-forest: #9a3412;
+  --color-forest-2: #7c2d12;
+  --color-cream: #fff7ed;
+  color-scheme: dark;
+}
+
+html[data-theme="obsidian"] {
+  --color-paper: #090909;
+  --color-paper-2: #141414;
+  --color-panel: #121212;
+  --color-ink: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-line: #27272a;
+  --color-forest: #3f3f46;
+  --color-forest-2: #27272a;
+  --color-cream: #fafafa;
+  color-scheme: dark;
+}
+
+html[data-theme="aurora"] {
+  --color-paper: #0c1224;
+  --color-paper-2: #16203a;
+  --color-panel: #12182e;
+  --color-ink: #eef2ff;
+  --color-muted: #a5b4fc;
+  --color-line: #2a3558;
+  --color-forest: #4338ca;
+  --color-forest-2: #3730a3;
+  --color-cream: #eef2ff;
+  color-scheme: dark;
+}
+
+html[data-theme="fjord"] {
+  --color-paper: #f3f6fb;
+  --color-paper-2: #e2eaf3;
+  --color-panel: #fbfdff;
+  --color-ink: #1e293b;
+  --color-muted: #5b6b7c;
+  --color-line: #d3deea;
+  --color-forest: #0f4c81;
+  --color-forest-2: #0c3b64;
+  --color-cream: #f8fafc;
+}
+
+html[data-theme="sage"] {
+  --color-paper: #eef3ea;
+  --color-paper-2: #e0ead8;
+  --color-panel: #f7faf4;
+  --color-ink: #1c2618;
+  --color-muted: #5c6b56;
+  --color-line: #cdd8c4;
+  --color-forest: #3f6212;
+  --color-forest-2: #365314;
+  --color-cream: #f7fee7;
+}
+
+html[data-theme="terracotta"] {
+  --color-paper: #f6efe8;
+  --color-paper-2: #eadfd4;
+  --color-panel: #fffaf6;
+  --color-ink: #3f2a22;
+  --color-muted: #7c655b;
+  --color-line: #e0d0c4;
+  --color-forest: #9a3412;
+  --color-forest-2: #7c2d12;
+  --color-cream: #fff7ed;
+}
+
+html[data-theme="ink"] {
+  --color-paper: #f7f4ef;
+  --color-paper-2: #ebe6de;
+  --color-panel: #fffdf9;
+  --color-ink: #1c1917;
+  --color-muted: #78716c;
+  --color-line: #e4ddd4;
+  --color-forest: #44403c;
+  --color-forest-2: #292524;
+  --color-cream: #fafaf9;
+}
+
+html[data-theme="cobalt"] {
+  --color-paper: #f4f7ff;
+  --color-paper-2: #e4ebff;
+  --color-panel: #fbfcff;
+  --color-ink: #172554;
+  --color-muted: #5b6b94;
+  --color-line: #d5def5;
+  --color-forest: #1d4ed8;
+  --color-forest-2: #1e40af;
+  --color-cream: #eff6ff;
+}
+
+html[data-theme="mono"] {
+  --color-paper: #f5f5f4;
+  --color-paper-2: #e7e5e4;
+  --color-panel: #fafaf9;
+  --color-ink: #171717;
+  --color-muted: #737373;
+  --color-line: #e5e5e5;
+  --color-forest: #171717;
+  --color-forest-2: #0a0a0a;
+  --color-cream: #fafafa;
+}
+
+html[data-theme="meridian"] {
+  --color-paper: #10241c;
+  --color-paper-2: #18352a;
+  --color-panel: #143028;
+  --color-ink: #ecfdf5;
+  --color-muted: #a7c4b5;
+  --color-line: #234838;
+  --color-forest: #166534;
+  --color-forest-2: #14532d;
+  --color-cream: #f0fdf4;
+  color-scheme: dark;
+}
+
+html[data-theme="forest"] {
+  --color-paper: #0f1f16;
+  --color-paper-2: #173224;
+  --color-panel: #14291d;
+  --color-ink: #ecfdf3;
+  --color-muted: #a3c4ae;
+  --color-line: #234833;
+  --color-forest: #166534;
+  --color-forest-2: #14532d;
+  --color-cream: #f0fdf4;
+  color-scheme: dark;
+}
+
+html[data-theme="graphite"] {
+  --color-paper: #18181b;
+  --color-paper-2: #27272a;
+  --color-panel: #1f1f23;
+  --color-ink: #f4f4f5;
+  --color-muted: #a1a1aa;
+  --color-line: #3f3f46;
+  --color-forest: #4338ca;
+  --color-forest-2: #3730a3;
+  --color-cream: #eef2ff;
+  color-scheme: dark;
+}
+
+html[data-theme="coral"] {
+  --color-paper: #fff1f2;
+  --color-paper-2: #ffe4e6;
+  --color-panel: #fff7f7;
+  --color-ink: #4c0519;
+  --color-muted: #9f1239;
+  --color-line: #fecdd3;
+  --color-forest: #9f1239;
+  --color-forest-2: #881337;
+  --color-cream: #fff1f2;
+}
+
+html[data-theme="velvet"] {
+  --color-paper: #160818;
+  --color-paper-2: #2a102c;
+  --color-panel: #1f0c24;
+  --color-ink: #faf5ff;
+  --color-muted: #d8b4fe;
+  --color-line: #4a1d5c;
+  --color-forest: #7e22ce;
+  --color-forest-2: #6b21a8;
+  --color-cream: #faf5ff;
+  color-scheme: dark;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

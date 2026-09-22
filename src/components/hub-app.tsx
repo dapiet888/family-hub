@@ -45,9 +45,9 @@ function HubReady({ view }: { view: HubView }) {
   const people = useHubStore((s) => s.people);
   const localEvents = useHubStore((s) => s.events);
   const { now, clock, day } = useClock(timezone);
-  const [addOpen, setAddOpen] = useState<"choose" | "event" | "item" | null>(
-    null,
-  );
+  const [addOpen, setAddOpen] = useState<
+    "choose" | "event" | "item" | "ics" | "mail" | "check" | null
+  >(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<HubEvent | null>(null);
 

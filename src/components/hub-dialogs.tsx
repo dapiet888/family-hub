@@ -9,6 +9,7 @@ import {
   useHubStore,
 } from "@/lib/hub-store";
 import { HUB_THEMES } from "@/lib/themes";
+import { CheckForm, IcsForm, MailForm } from "@/components/bring-in";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,8 +29,8 @@ export function AddDialogs({
   editingEvent,
   setEditingEvent,
 }: {
-  addOpen: "choose" | "event" | "item" | null;
-  setAddOpen: (value: "choose" | "event" | "item" | null) => void;
+  addOpen: "choose" | "event" | "item" | "ics" | "mail" | "check" | null;
+  setAddOpen: (value: "choose" | "event" | "item" | "ics" | "mail" | "check" | null) => void;
   settingsOpen: boolean;
   setSettingsOpen: (value: boolean) => void;
   editingEvent: HubEvent | null;
@@ -48,6 +49,9 @@ export function AddDialogs({
             <ChooseForm
               onEvent={() => setAddOpen("event")}
               onItem={() => setAddOpen("item")}
+              onIcs={() => setAddOpen("ics")}
+              onMail={() => setAddOpen("mail")}
+              onCheck={() => setAddOpen("check")}
             />
           ) : null}
           {addOpen === "event" ? (
@@ -62,6 +66,9 @@ export function AddDialogs({
               onCancel={() => setAddOpen(null)}
             />
           ) : null}
+          {addOpen === "ics" ? <IcsForm onDone={() => setAddOpen(null)} /> : null}
+          {addOpen === "mail" ? <MailForm onDone={() => setAddOpen(null)} /> : null}
+          {addOpen === "check" ? <CheckForm onDone={() => setAddOpen(null)} /> : null}
         </DialogContent>
       </Dialog>
 
@@ -94,9 +101,15 @@ export function AddDialogs({
 function ChooseForm({
   onEvent,
   onItem,
+  onIcs,
+  onMail,
+  onCheck,
 }: {
   onEvent: () => void;
   onItem: () => void;
+  onIcs: () => void;
+  onMail: () => void;
+  onCheck: () => void;
 }) {
   return (
     <>
@@ -111,6 +124,15 @@ function ChooseForm({
       </Button>
       <Button type="button" variant="secondary" onClick={onItem}>
         List item
+      </Button>
+      <Button type="button" variant="secondary" onClick={onIcs}>
+        Import calendar
+      </Button>
+      <Button type="button" variant="secondary" onClick={onMail}>
+        Scan email
+      </Button>
+      <Button type="button" variant="secondary" onClick={onCheck}>
+        Drop a check
       </Button>
     </>
   );
@@ -412,21 +434,30 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
         <Input value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
       <Field label="Theme">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid max-h-72 grid-cols-2 gap-2 overflow-auto pr-1">
           {HUB_THEMES.map((option) => (
             <button
               key={option.id}
               type="button"
               aria-pressed={theme === option.id}
               onClick={() => setTheme(option.id)}
-              className={`flex h-16 flex-col items-start justify-center rounded-lg border px-3 text-left font-sans ${
+              className={`flex flex-col items-start gap-2 rounded-lg border px-3 py-2 text-left font-sans ${
                 theme === option.id
                   ? "border-forest bg-forest text-cream"
                   : "border-line bg-paper text-ink"
               }`}
             >
               <span className="font-medium">{option.label}</span>
-              <span className="text-sm opacity-80">{option.hint}</span>
+              <span className="flex gap-1">
+                {option.dots.map((dot) => (
+                  <i
+                    key={dot}
+                    className="size-3 rounded-full"
+                    style={{ background: dot }}
+                    aria-hidden
+                  />
+                ))}
+              </span>
             </button>
           ))}
         </div>

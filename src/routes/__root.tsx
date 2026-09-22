@@ -82,7 +82,7 @@ function RootDocument() {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{var t=JSON.parse(localStorage.getItem('family-hub-v1')||'{}').state.theme;if(t==='paper'||t==='spruce'||t==='night')document.documentElement.dataset.theme=t}catch(e){}",
+              "try{var t=JSON.parse(localStorage.getItem('family-hub-v1')||'{}').state.theme;var ok=['paper','midnight','boardroom','slate','carbon','obsidian','aurora','fjord','spruce','sage','terracotta','ink','cobalt','mono','meridian','night','forest','graphite','coral','velvet'];if(ok.indexOf(t)>=0)document.documentElement.dataset.theme=t}catch(e){}",
           }}
         />
       </head>

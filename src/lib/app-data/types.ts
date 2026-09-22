@@ -32,6 +32,11 @@ export const GoogleCalendarTools = {
   availability: "google_calendar_availability",
 } as const;
 
+export const GmailTools = {
+  search: "gmail_search",
+  getMessage: "gmail_get_message",
+} as const;
+
 export type CallToolResult<T = unknown> = {
   ok: boolean;
   data: T | null;

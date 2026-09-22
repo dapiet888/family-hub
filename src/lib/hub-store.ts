@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { addDays, format, startOfDay } from "date-fns";
 import { SHOPPING_CATALOGUE } from "./catalogue";
-import { type HubTheme } from "./themes";
+import { isHubTheme, type HubTheme } from "./themes";
 
 export type PersonRole = "adult" | "child";
 
@@ -276,6 +276,10 @@ type HubState = {
   toggleItem: (listId: string, itemId: string) => void;
   removeItem: (listId: string, itemId: string) => void;
   clearDone: (listId: string) => void;
+  applyCheck: (input: {
+    events: Omit<HubEvent, "id" | "source">[];
+    actions: { listId: string; text: string; personId?: string }[];
+  }) => void;
   updateHousehold: (name: string) => void;
   setTheme: (theme: HubTheme) => void;
   updatePerson: (id: string, patch: Partial<Person>) => void;
@@ -432,6 +436,29 @@ export const useHubStore = create<HubState>()(
             ),
           };
         }),
+      applyCheck: (input) =>
+        set((s) => ({
+          events: [
+            ...s.events,
+            ...input.events.map((event) => ({ ...event, id: uid("e"), source: "local" as const })),
+          ],
+          lists: s.lists.map((list) => {
+            const extra = input.actions.filter((action) => action.listId === list.id);
+            if (!extra.length) return list;
+            return {
+              ...list,
+              items: [
+                ...extra.map((action) => ({
+                  id: uid("i"),
+                  text: action.text,
+                  done: false,
+                  personId: action.personId,
+                })),
+                ...list.items,
+              ],
+            };
+          }),
+        })),
       updateHousehold: (name) => set({ householdName: name }),
       setTheme: (theme) => set({ theme }),
       updatePerson: (id, patch) =>
@@ -455,9 +482,7 @@ export const useHubStore = create<HubState>()(
         state.itemUses ??= {};
         state.customItems ??= [];
         state.lastLists ??= {};
-        if (state.theme !== "paper" && state.theme !== "spruce" && state.theme !== "night") {
-          state.theme = "paper";
-        }
+        if (!isHubTheme(state.theme)) state.theme = "paper";
         if (Object.keys(state.itemUses).length === 0) {
           for (const list of state.lists) {
             if (list.kind !== "shopping") continue;
