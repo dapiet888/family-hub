@@ -6,6 +6,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
+import { cloudflare } from "@cloudflare/vite-plugin";
 // @ts-expect-error JS plugin alongside the TS vite config
 import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 // @ts-expect-error JS plugin alongside the TS vite config
@@ -145,6 +146,9 @@ function authPopupPlugin(): Plugin {
 // `0.0.0.0:8080` is the live-preview contract — don't change host/port.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
+const cloudflareBuild =
+  process.env.WORKERS_CI === "1" || process.env.CF_PAGES === "1";
+
 export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "0.0.0.0",
@@ -166,12 +170,15 @@ export default defineConfig(({ command, isPreview }) => ({
     // PWA head + ?install=1 tutorial page; runs before Start/Nitro.
     grokPwaPlugin(),
     tailwindcss(),
+    ...(cloudflareBuild
+      ? [cloudflare({ viteEnvironment: { name: "ssr" } })]
+      : []),
     tanstackStart(),
-    ...(command === "build" || isPreview
+    // Cloudflare Workers Builds sets WORKERS_CI. Keep Nitro for this preview.
+    ...(!cloudflareBuild && (command === "build" || isPreview)
       ? [
           nitro({
-            // Netlify sets NETLIFY during its build. This preview stays on Vercel.
-            preset: process.env.NETLIFY ? "netlify" : "vercel",
+            preset: "vercel",
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.

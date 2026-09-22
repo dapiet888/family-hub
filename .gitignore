@@ -11,3 +11,5 @@ screenshots
 .env
 .env.*
 !.env.example
+.wrangler
+
