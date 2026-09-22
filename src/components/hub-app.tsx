@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useRefetchWhenConnectorReady } from "@/lib/app-data";
 import { redirectToLoginIfRequired } from "@/lib/app-data/login";
-import { fetchGoogleCalendar } from "@/lib/google-calendar";
+import { fetchGoogleCalendar, isPublicFamilyHost } from "@/lib/google-calendar";
 import { fmtClock, fmtDay, guessPersonId } from "@/lib/hub-dates";
 import { reminderLabel } from "@/lib/catalogue";
 import { type HubEvent, useHubStore } from "@/lib/hub-store";
@@ -53,15 +53,32 @@ function HubReady({ view }: { view: HubView }) {
   const [editingEvent, setEditingEvent] = useState<HubEvent | null>(null);
   useFamilySync();
 
+  const [googleOnThisScreen, setGoogleOnThisScreen] = useState(false);
+  useEffect(() => {
+    setGoogleOnThisScreen(!isPublicFamilyHost(window.location.hostname));
+  }, []);
   const calendarQuery = useQuery({
     queryKey: ["google-calendar"],
     queryFn: () => fetchGoogleCalendar(),
+    enabled: googleOnThisScreen,
     staleTime: 60_000,
   });
 
-  const calendar = calendarQuery.data;
+  const publicCalendar = useMemo(
+    () => ({
+      status: "not_connected" as const,
+      error: {
+        kind: "not_connected" as const,
+        message:
+          "Google Calendar connects inside Grok, not on the family link. Add the event here, or import a calendar file. It still syncs to the other screens.",
+      },
+    }),
+    [],
+  );
+  const calendar = googleOnThisScreen ? calendarQuery.data : publicCalendar;
   useRefetchWhenConnectorReady(
-    calendar?.status === "pending" || calendarQuery.isPending,
+    googleOnThisScreen &&
+      (calendar?.status === "pending" || calendarQuery.isFetching),
     calendarQuery.refetch,
   );
 

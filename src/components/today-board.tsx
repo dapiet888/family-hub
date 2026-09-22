@@ -203,10 +203,7 @@ function GoogleStrip({
   }
   if (calendar.status === "not_connected") {
     return (
-      <p className="mb-3 font-sans text-sm text-muted">
-        Connect Google Calendar in Grok to pull the family diaries. Local events
-        stay on this board either way.
-      </p>
+      <p className="mb-3 font-sans text-sm text-muted">{calendar.error.message}</p>
     );
   }
   return (

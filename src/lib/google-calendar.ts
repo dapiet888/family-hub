@@ -10,6 +10,17 @@ import {
   type CallToolResult,
 } from "@/lib/app-data";
 
+const PUBLIC_GOOGLE_MESSAGE =
+  "Google Calendar connects inside Grok, not on the family link. Add the event here, or import a calendar file. It still syncs to the other screens.";
+
+export function isPublicFamilyHost(host: string | null | undefined) {
+  const name = (host ?? "").split(":")[0]?.trim().toLowerCase() ?? "";
+  if (!name || name === "localhost" || name === "127.0.0.1" || name === "[::1]") return false;
+  if (name === "grok.me" || name.endsWith(".grok.me")) return false;
+  if (name.endsWith(".grok-sandbox.com") || name.includes("app-builder")) return false;
+  return true;
+}
+
 export type GoogleCal = {
   id: string;
   summary: string;
@@ -173,6 +184,20 @@ function failFrom(
 
 export const fetchGoogleCalendar = createServerFn({ method: "POST" }).handler(
   async (): Promise<GoogleCalendarResult> => {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    let host: string | null = null;
+    try {
+      const request = getRequest();
+      host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    } catch {
+      host = null;
+    }
+    if (isPublicFamilyHost(host)) {
+      return {
+        status: "not_connected",
+        error: { kind: "not_connected", message: PUBLIC_GOOGLE_MESSAGE },
+      };
+    }
     const { callTool } = await import("@/lib/app-data/client.server");
     const options = { connectorType: ConnectorType.GoogleCalendar };
     const now = new Date();

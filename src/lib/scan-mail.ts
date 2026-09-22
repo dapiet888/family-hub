@@ -6,6 +6,7 @@ import {
 } from "@/lib/app-data/errors";
 import type { CallToolResult } from "@/lib/app-data/types";
 import { hintFromMail } from "@/lib/mail-hints";
+import { isPublicFamilyHost } from "@/lib/google-calendar";
 
 export type MailProposal = {
   title: string;
@@ -45,6 +46,23 @@ function rowsFrom(data: unknown): MailRow[] {
 }
 
 export const scanInbox = createServerFn({ method: "POST" }).handler(async (): Promise<MailScanResult> => {
+  const { getRequest } = await import("@tanstack/react-start/server");
+  let host: string | null = null;
+  try {
+    const request = getRequest();
+    host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  } catch {
+    host = null;
+  }
+  if (isPublicFamilyHost(host)) {
+    return {
+      status: "not_connected",
+      error: {
+        kind: "not_connected",
+        message: "Email scan connects inside Grok, not on the family link. Use Drop a check or import a calendar file.",
+      },
+    };
+  }
   const { callTool } = await import("@/lib/app-data/client.server");
   const options = { connectorType: ConnectorType.Gmail };
   const search = await callTool(
