@@ -11,7 +11,7 @@ import {
 } from "@/lib/app-data";
 
 const PUBLIC_GOOGLE_MESSAGE =
-  "Google Calendar connects inside Grok, not on the family link. Add the event here, or import a calendar file. It still syncs to the other screens.";
+  "Connect Google in Settings. Paste the secret iCal address from Google Calendar and the diaries show on this screen.";
 
 export function isPublicFamilyHost(host: string | null | undefined) {
   const name = (host ?? "").split(":")[0]?.trim().toLowerCase() ?? "";

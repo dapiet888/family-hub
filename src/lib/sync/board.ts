@@ -1,5 +1,6 @@
 import type { HubEvent, HubList, ListItem, Person } from "../hub-store";
 import type { HubTheme } from "../themes";
+import type { GoogleFeed } from "../google-feeds";
 
 export type BoardDoc = {
   householdName: string;
@@ -12,6 +13,7 @@ export type BoardDoc = {
   itemUses: Record<string, number>;
   customItems: string[];
   lastLists: Record<string, string[]>;
+  googleFeeds?: GoogleFeed[];
 };
 
 export type BoardOp =
@@ -20,7 +22,8 @@ export type BoardOp =
   | { id: string; kind: "people"; people: Person[] }
   | { id: string; kind: "event.put"; event: HubEvent }
   | { id: string; kind: "event.del"; eventId: string }
-  | { id: string; kind: "lists"; lists: HubList[]; activeListId: string; itemUses: Record<string, number>; customItems: string[]; lastLists: Record<string, string[]> };
+  | { id: string; kind: "lists"; lists: HubList[]; activeListId: string; itemUses: Record<string, number>; customItems: string[]; lastLists: Record<string, string[]> }
+  | { id: string; kind: "feeds"; googleFeeds: GoogleFeed[] };
 
 export type StoredOp = BoardOp & { seq: number };
 
@@ -113,6 +116,9 @@ export function diffBoard(prev: BoardDoc, next: BoardDoc): BoardOp[] {
       lastLists: next.lastLists,
     });
   }
+  if (JSON.stringify(prev.googleFeeds ?? []) !== JSON.stringify(next.googleFeeds ?? [])) {
+    ops.push({ id: crypto.randomUUID(), kind: "feeds", googleFeeds: next.googleFeeds ?? [] });
+  }
   return ops;
 }
 
@@ -145,6 +151,8 @@ export function applyOps(doc: BoardDoc, ops: BoardOp[]): BoardDoc {
         customItems: op.customItems,
         lastLists: op.lastLists,
       };
+    } else if (op.kind === "feeds") {
+      next = { ...next, googleFeeds: op.googleFeeds };
     }
   }
   return next;

@@ -35,6 +35,9 @@ export const Route = createRootRoute({
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
       { title: APP_NAME },
       { name: "theme-color", content: "#2A4A46" },
       {
@@ -43,10 +46,10 @@ export const Route = createRootRoute({
       },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/__grok/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",

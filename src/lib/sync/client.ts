@@ -16,6 +16,7 @@ export function toBoard(): BoardDoc {
     itemUses: state.itemUses,
     customItems: state.customItems,
     lastLists: state.lastLists,
+    googleFeeds: state.googleFeeds ?? [],
   };
 }
 

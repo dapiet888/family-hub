@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { addDays, format, startOfDay } from "date-fns";
 import { SHOPPING_CATALOGUE } from "./catalogue";
 import { isHubTheme, type HubTheme } from "./themes";
+import type { GoogleFeed } from "./google-feeds";
 import type { RepeatKind } from "./calendar-features";
 import type { BoardDoc, BoardOp } from "./sync/board";
 
@@ -273,6 +274,7 @@ type HubState = {
   itemUses: Record<string, number>;
   customItems: string[];
   lastLists: Record<string, string[]>;
+  googleFeeds: GoogleFeed[];
   syncCode: string | null;
   syncSeq: number;
   outbox: BoardOp[];
@@ -300,6 +302,8 @@ type HubState = {
   queueOps: (ops: BoardOp[]) => void;
   ackOps: (ids: string[], seq: number) => void;
   applyBoard: (doc: BoardDoc) => void;
+  addGoogleFeed: (url: string, name: string) => void;
+  removeGoogleFeed: (id: string) => void;
 };
 
 export const useHubStore = create<HubState>()(
@@ -316,6 +320,7 @@ export const useHubStore = create<HubState>()(
       itemUses: {},
       customItems: [],
       lastLists: {},
+      googleFeeds: [],
       syncCode: null,
       syncSeq: 0,
       outbox: [],
@@ -505,7 +510,17 @@ export const useHubStore = create<HubState>()(
           itemUses: doc.itemUses ?? {},
           customItems: doc.customItems ?? [],
           lastLists: doc.lastLists ?? {},
+          googleFeeds: doc.googleFeeds ?? [],
         }),
+      addGoogleFeed: (url, name) =>
+        set((s) => ({
+          googleFeeds: [
+            ...(s.googleFeeds ?? []).filter((feed) => feed.url !== url.trim()),
+            { id: uid("g"), name: name.trim() || "Google", url: url.trim() },
+          ].slice(-8),
+        })),
+      removeGoogleFeed: (id) =>
+        set((s) => ({ googleFeeds: (s.googleFeeds ?? []).filter((feed) => feed.id !== id) })),
     }),
     {
       name: "family-hub-v1",
@@ -522,6 +537,7 @@ export const useHubStore = create<HubState>()(
         state.itemUses ??= {};
         state.customItems ??= [];
         state.lastLists ??= {};
+        state.googleFeeds ??= [];
         state.outbox ??= [];
         state.syncCode ??= null;
         state.syncSeq ??= 0;

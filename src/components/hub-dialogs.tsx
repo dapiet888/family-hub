@@ -20,6 +20,7 @@ import {
 } from "@/lib/hub-store";
 import { HUB_THEMES } from "@/lib/themes";
 import { FamilySyncPanel } from "@/components/family-sync";
+import { GoogleSetup, InstallApp } from "@/components/google-setup";
 import { CheckForm, IcsForm, MailForm } from "@/components/bring-in";
 import { Button } from "@/components/ui/button";
 import {
@@ -581,11 +582,12 @@ function SettingsForm({ onDone }: { onDone: () => void }) {
       <DialogHeader>
         <DialogTitle>Household</DialogTitle>
         <DialogDescription>
-          Kids stay as names on the board — they do not need Google accounts.
-          One adult Google calendar is enough for this kitchen screen.
+          Names stay on the board. Google calendars are added below with the secret iCal address.
         </DialogDescription>
       </DialogHeader>
       <FamilySyncPanel />
+      <InstallApp />
+      <GoogleSetup />
       <Field label="House name">
         <Input value={name} onChange={(e) => setName(e.target.value)} />
       </Field>

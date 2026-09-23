@@ -13,6 +13,7 @@ import {
 import { useRefetchWhenConnectorReady } from "@/lib/app-data";
 import { redirectToLoginIfRequired } from "@/lib/app-data/login";
 import { fetchGoogleCalendar, isPublicFamilyHost } from "@/lib/google-calendar";
+import { fetchGoogleFeeds } from "@/lib/google-feeds";
 import { fmtClock, fmtDay, guessPersonId } from "@/lib/hub-dates";
 import { reminderLabel } from "@/lib/catalogue";
 import { occurrenceReminderAt } from "@/lib/calendar-features";
@@ -73,18 +74,30 @@ function HubReady({ view }: { view: HubView }) {
     staleTime: 60_000,
   });
 
+  const googleFeeds = useHubStore((s) => s.googleFeeds ?? []);
+  const feedQuery = useQuery({
+    queryKey: ["google-feeds", googleFeeds],
+    queryFn: () => fetchGoogleFeeds({ data: { feeds: googleFeeds } }),
+    enabled: googleFeeds.length > 0,
+    staleTime: 5 * 60_000,
+    refetchInterval: 10 * 60_000,
+  });
   const publicCalendar = useMemo(
     () => ({
       status: "not_connected" as const,
       error: {
         kind: "not_connected" as const,
         message:
-          "Google Calendar connects inside Grok, not on the family link. Add the event here, or import a calendar file. It still syncs to the other screens.",
+          "Connect Google in Settings. Paste the secret iCal address and the diaries show here.",
       },
     }),
     [],
   );
-  const calendar = googleOnThisScreen ? calendarQuery.data : publicCalendar;
+  const calendar = googleFeeds.length
+    ? feedQuery.data
+    : googleOnThisScreen
+      ? calendarQuery.data
+      : publicCalendar;
   useRefetchWhenConnectorReady(
     googleOnThisScreen &&
       (calendar?.status === "pending" || calendarQuery.isFetching),
@@ -135,7 +148,7 @@ function HubReady({ view }: { view: HubView }) {
         <p className="hidden font-display text-3xl tabular-nums tracking-tight text-ink sm:block" suppressHydrationWarning>
           {clock}
         </p>
-        <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2 overflow-x-auto">
+        <div className="flex w-full flex-wrap items-center gap-2">
           {people.map((person) => (
             <span
               key={person.id}
@@ -146,7 +159,7 @@ function HubReady({ view }: { view: HubView }) {
                 style={{ background: person.color }}
                 aria-hidden
               />
-              <span className="hidden sm:inline">{person.name}</span>
+              {person.name}
             </span>
           ))}
         </div>
@@ -181,7 +194,7 @@ function HubReady({ view }: { view: HubView }) {
                 });
               }
             }}
-            onRetry={() => void calendarQuery.refetch()}
+            onRetry={() => void (googleFeeds.length ? feedQuery.refetch() : calendarQuery.refetch())}
             onOpenEvent={setEditingEvent}
           />
         )}
