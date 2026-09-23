@@ -345,14 +345,17 @@ function EventForm({
           </div>
         ) : null}
         {repeat !== "none" ? (
-          <Input
-            name="repeatUntil"
-            type="date"
-            aria-label="Repeat until"
-            defaultValue={event?.repeatUntil?.slice(0, 10) ?? ""}
-            disabled={readOnly}
-            className="mt-2"
-          />
+          <label className="mt-2 flex flex-col gap-1 font-sans text-sm text-ink">
+            Last day, optional
+            <Input
+              name="repeatUntil"
+              type="date"
+              aria-label="Last day, optional"
+              defaultValue={event?.repeatUntil?.slice(0, 10) ?? ""}
+              disabled={readOnly}
+            />
+            <span className="text-muted">Leave this empty and the meeting keeps repeating. This is not the finish time.</span>
+          </label>
         ) : null}
       </Field>
       <Field label="Description">

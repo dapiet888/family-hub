@@ -28,6 +28,23 @@ END:VCALENDAR`);
   assert.equal(events[0]?.location, "Hall");
 });
 
+test("a weekday meeting repeats Monday to Friday", () => {
+  const events = parseIcs(`BEGIN:VCALENDAR
+BEGIN:VEVENT
+SUMMARY:Standup
+DTSTART:20260921T090000
+DTEND:20260921T093000
+RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
+END:VEVENT
+END:VCALENDAR`);
+  const days = events.map((event) => new Date(event.start).getDay());
+  assert.equal(days.includes(1), true);
+  assert.equal(days.includes(5), true);
+  assert.equal(days.includes(0), false);
+  assert.equal(days.includes(6), false);
+  assert.ok(events.length > 5);
+});
+
 test("a check block maps people and lists", () => {
   const drop = parseCheckDrop(`Please push this.
 \`\`\`family-hub

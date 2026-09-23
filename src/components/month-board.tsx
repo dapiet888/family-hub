@@ -162,7 +162,7 @@ export function MonthBoard({
                         borderLeft: `3px solid ${person?.color ?? "var(--color-forest)"}`,
                       }}
                     >
-                      {event.allDay ? event.title : fmtTime(event.start, timezone)}
+                      {event.allDay ? event.title : `${fmtTime(event.start, timezone)} ${event.title}`}
                     </span>
                   );
                 })}
