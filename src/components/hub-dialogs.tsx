@@ -1,8 +1,18 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { addHours, setMinutes, startOfHour } from "date-fns";
 import { toast } from "sonner";
+import { MapPin } from "lucide-react";
 import { fromDatetimeLocal, toDatetimeLocal } from "@/lib/hub-dates";
 import { REMINDER_OPTIONS } from "@/lib/catalogue";
+import {
+  buildEventFields,
+  durationChoice,
+  durationLabel,
+  mapsUrl,
+  remindEveryonePatch,
+  type DurationChoice,
+  type RepeatKind,
+} from "@/lib/calendar-features";
 import {
   PERSON_SWATCHES,
   type HubEvent,
@@ -161,9 +171,14 @@ function EventForm({
   const defaultStart = toDatetimeLocal(
     event?.start ?? startAt ?? addHours(setMinutes(startOfHour(new Date()), 0), 1).toISOString(),
   );
+  const [duration, setDuration] = useState<DurationChoice>(durationChoice(event));
+  const [repeat, setRepeat] = useState<RepeatKind>(event?.repeat ?? "none");
+  const [repeatDays, setRepeatDays] = useState<number[]>(event?.repeatDays ?? []);
+  const [location, setLocation] = useState(event?.location ?? "");
   const [remindMinutes, setRemindMinutes] = useState<number | null>(
     event?.remindMinutes ?? null,
   );
+  const [remindEveryone, setRemindEveryone] = useState(event?.remindEveryone ?? false);
   const [taggedIds, setTaggedIds] = useState<string[]>(event?.taggedIds ?? []);
 
   function toggleTag(id: string) {
@@ -181,15 +196,24 @@ function EventForm({
     const data = new FormData(formEvent.currentTarget);
     const title = String(data.get("title") ?? "").trim();
     if (!title) return;
-    const payload = {
+    const startValue = String(data.get("start") ?? "");
+    const start = duration === "all"
+      ? new Date(`${startValue.slice(0, 10)}T00:00:00`).toISOString()
+      : fromDatetimeLocal(startValue);
+    const payload = buildEventFields({
       title,
       personId: String(data.get("personId") ?? people[0]?.id ?? "p1"),
       taggedIds,
       remindMinutes,
-      start: fromDatetimeLocal(String(data.get("start") ?? "")),
-      location: String(data.get("location") ?? "").trim() || undefined,
-      allDay: false,
-    };
+      remindEveryone,
+      start,
+      location,
+      description: String(data.get("description") ?? ""),
+      duration,
+      repeat,
+      repeatDays,
+      repeatUntil: String(data.get("repeatUntil") ?? ""),
+    });
     if (remindMinutes != null && typeof Notification !== "undefined" && Notification.permission === "default") {
       void Notification.requestPermission();
     }
@@ -238,22 +262,127 @@ function EventForm({
           ))}
         </select>
       </Field>
-      <Field label="Starts">
+      <Field label="How long">
+        <div className="flex flex-wrap gap-2">
+          {([15, 30, 45, 60, "all"] as const).map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              disabled={readOnly}
+              onClick={() => setDuration(choice)}
+              className={`h-11 rounded-full border px-3 font-sans text-sm ${
+                duration === choice
+                  ? "border-forest bg-forest text-cream"
+                  : "border-line bg-panel text-ink"
+              }`}
+            >
+              {durationLabel(choice)}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label={duration === "all" ? "Date" : "Starts"}>
         <Input
           name="start"
-          type="datetime-local"
+          key={duration === "all" ? "all-day" : "timed"}
+          type={duration === "all" ? "date" : "datetime-local"}
           required
-          defaultValue={defaultStart}
+          defaultValue={duration === "all" ? defaultStart.slice(0, 10) : defaultStart}
           disabled={readOnly}
+        />
+      </Field>
+      <Field label="Repeats">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["none", "Once"],
+              ["daily", "Every day"],
+              ["weekdays", "Weekdays"],
+              ["weekly", "Every week"],
+              ["monthly", "Every month"],
+              ["days", "Chosen days"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              disabled={readOnly}
+              onClick={() => setRepeat(value)}
+              className={`h-11 rounded-full border px-3 font-sans text-sm ${
+                repeat === value
+                  ? "border-forest bg-forest text-cream"
+                  : "border-line bg-panel text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {repeat === "days" ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label, index) => {
+              const day = index + 1;
+              const selected = repeatDays.includes(day);
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={readOnly}
+                  onClick={() =>
+                    setRepeatDays((current) =>
+                      current.includes(day) ? current.filter((item) => item !== day) : [...current, day],
+                    )
+                  }
+                  className={`h-11 min-w-12 rounded-full border px-3 font-sans text-sm ${
+                    selected ? "border-forest bg-forest text-cream" : "border-line bg-panel text-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {repeat !== "none" ? (
+          <Input
+            name="repeatUntil"
+            type="date"
+            aria-label="Repeat until"
+            defaultValue={event?.repeatUntil?.slice(0, 10) ?? ""}
+            disabled={readOnly}
+            className="mt-2"
+          />
+        ) : null}
+      </Field>
+      <Field label="Description">
+        <textarea
+          name="description"
+          defaultValue={event?.description ?? ""}
+          placeholder="What to bring, which door, who is driving"
+          disabled={readOnly}
+          rows={3}
+          className="w-full rounded-md border border-line bg-panel px-3 py-2 font-sans text-base text-ink disabled:opacity-70"
         />
       </Field>
       <Field label="Where">
         <Input
           name="location"
-          defaultValue={event?.location ?? ""}
+          value={location}
+          onChange={(change) => setLocation(change.target.value)}
           placeholder="School gate"
           disabled={readOnly}
         />
+        {location.trim() ? (
+          <a
+            href={mapsUrl(location)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 font-sans text-sm text-ink underline"
+          >
+            <MapPin className="size-4" />
+            Pin in Google Maps
+          </a>
+        ) : null}
       </Field>
       <Field label="Remind before">
         <div className="flex flex-wrap gap-2">
@@ -304,6 +433,26 @@ function EventForm({
           })}
         </div>
       </Field>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={readOnly}
+        onClick={() => {
+          const patch = remindEveryonePatch(
+            people.map((person) => person.id),
+            remindMinutes,
+          );
+          setTaggedIds(patch.taggedIds);
+          setRemindMinutes(patch.remindMinutes);
+          setRemindEveryone(true);
+          if (typeof Notification !== "undefined" && Notification.permission === "default") {
+            void Notification.requestPermission();
+          }
+          toast("Everyone on this event will be reminded");
+        }}
+      >
+        Remind everyone
+      </Button>
       <div className="mt-1 flex flex-wrap justify-end gap-2">
         {event && !readOnly ? (
           <Button

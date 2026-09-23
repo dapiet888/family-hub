@@ -15,6 +15,7 @@ import { redirectToLoginIfRequired } from "@/lib/app-data/login";
 import { fetchGoogleCalendar, isPublicFamilyHost } from "@/lib/google-calendar";
 import { fmtClock, fmtDay, guessPersonId } from "@/lib/hub-dates";
 import { reminderLabel } from "@/lib/catalogue";
+import { occurrenceReminderAt } from "@/lib/calendar-features";
 import { type HubEvent, useHubStore } from "@/lib/hub-store";
 import { Button } from "@/components/ui/button";
 import { useFamilySync } from "@/lib/sync/client";
@@ -284,11 +285,8 @@ function useReminders(events: HubEvent[]) {
       const seen = new Set(fired);
       let changed = false;
       for (const event of events) {
-        if (event.remindMinutes == null || event.allDay) continue;
-        const start = new Date(event.start).getTime();
-        if (Number.isNaN(start)) continue;
-        const remindAt = start - event.remindMinutes * 60_000;
-        if (now < remindAt || now > start + 10 * 60_000) continue;
+        const remindAt = occurrenceReminderAt(event, new Date(now));
+        if (remindAt == null) continue;
         const key = `${event.id}:${remindAt}`;
         if (seen.has(key)) continue;
         seen.add(key);

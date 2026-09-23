@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { addDays, format, startOfDay } from "date-fns";
 import { SHOPPING_CATALOGUE } from "./catalogue";
 import { isHubTheme, type HubTheme } from "./themes";
+import type { RepeatKind } from "./calendar-features";
 import type { BoardDoc, BoardOp } from "./sync/board";
 
 export type PersonRole = "adult" | "child";
@@ -20,10 +21,16 @@ export type HubEvent = {
   start: string;
   end?: string;
   allDay?: boolean;
+  durationMinutes?: number;
   location?: string;
+  description?: string;
+  repeat?: RepeatKind;
+  repeatDays?: number[];
+  repeatUntil?: string;
   personId: string;
   taggedIds?: string[];
   remindMinutes?: number | null;
+  remindEveryone?: boolean;
   source: "local" | "google";
   calendarId?: string;
   calendarName?: string;

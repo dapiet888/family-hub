@@ -1,16 +1,15 @@
 import {
-  addDays,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
   isSameDay,
   isSameMonth,
   parseISO,
-  startOfDay,
   startOfMonth,
   startOfWeek,
 } from "date-fns";
 import type { HubEvent, Person } from "./hub-store";
+import { occursOn } from "./calendar-features";
 
 export function fmtTime(iso: string, timeZone: string) {
   const date = parseISO(iso);
@@ -51,18 +50,8 @@ export function eventEnd(event: HubEvent) {
 }
 
 export function eventsOnDay(events: HubEvent[], day: Date) {
-  const from = startOfDay(day).getTime();
-  const to = addDays(startOfDay(day), 1).getTime();
   return events
-    .filter((event) => {
-      const start = eventStart(event).getTime();
-      if (event.allDay) {
-        const startDay = startOfDay(eventStart(event)).getTime();
-        return startDay >= from && startDay < to;
-      }
-      const end = eventEnd(event).getTime();
-      return start < to && end > from;
-    })
+    .filter((event) => occursOn(event, day))
     .sort((a, b) => {
       if (a.allDay && !b.allDay) return -1;
       if (!a.allDay && b.allDay) return 1;

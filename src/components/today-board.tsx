@@ -1,5 +1,6 @@
 import { CalendarClock, MapPin, RefreshCw } from "lucide-react";
 import { reminderLabel } from "@/lib/catalogue";
+import { durationLabel, durationChoice, mapsUrl, repeatLabel } from "@/lib/calendar-features";
 import type { GoogleCalendarResult } from "@/lib/google-calendar";
 import { fmtTime, upcomingToday } from "@/lib/hub-dates";
 import { type HubEvent, useHubStore } from "@/lib/hub-store";
@@ -111,12 +112,13 @@ function EventRow({
       .join(", "),
   );
   const remind = reminderLabel(event.remindMinutes);
+  const repeat = repeatLabel(event.repeat, event.repeatDays);
   return (
-    <li>
+    <li className="rounded-md px-1 py-2.5 hover:bg-paper-2">
       <button
         type="button"
         onClick={onOpen}
-        className="grid w-full grid-cols-[5.5rem_0.5rem_1fr] items-start gap-2.5 rounded-md px-1 py-2.5 text-left hover:bg-paper-2"
+        className="grid w-full grid-cols-[5.5rem_0.5rem_1fr] items-start gap-2.5 text-left"
       >
         <span className="pt-0.5 font-sans text-sm tabular-nums text-muted">
           {event.allDay ? "All day" : fmtTime(event.start, timezone)}
@@ -132,12 +134,10 @@ function EventRow({
           </span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 font-sans text-sm text-muted">
             <span>{person?.name}</span>
-            {event.location ? (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3" />
-                {event.location}
-              </span>
+            {event.allDay || event.durationMinutes ? (
+              <span>{durationLabel(durationChoice(event))}</span>
             ) : null}
+            {repeat ? <span>{repeat}</span> : null}
             {event.source === "google" ? (
               <span className="inline-flex items-center gap-1">
                 <CalendarClock className="size-3" />
@@ -145,10 +145,25 @@ function EventRow({
               </span>
             ) : null}
             {remind && remind !== "No reminder" ? <span>{remind}</span> : null}
+            {event.remindEveryone ? <span>Everyone reminded</span> : null}
             {tagged ? <span>Tagged {tagged}</span> : null}
           </span>
+          {event.description ? (
+            <span className="mt-1 block font-sans text-sm text-ink">{event.description}</span>
+          ) : null}
         </span>
       </button>
+      {event.location ? (
+        <a
+          href={mapsUrl(event.location)}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-[6.5rem] inline-flex items-center gap-1 font-sans text-sm text-ink underline"
+        >
+          <MapPin className="size-3" />
+          {event.location}
+        </a>
+      ) : null}
     </li>
   );
 }
