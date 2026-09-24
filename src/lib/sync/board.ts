@@ -27,6 +27,25 @@ export type BoardOp =
 
 export type StoredOp = BoardOp & { seq: number };
 
+export function withoutDemo(doc: BoardDoc): BoardDoc {
+  return { ...doc, events: doc.events.filter((event) => !event.id.startsWith("seed-")) };
+}
+
+function blankBoard(): BoardDoc {
+  return {
+    householdName: "Our house",
+    timezone: "Europe/London",
+    theme: "paper",
+    people: [],
+    events: [],
+    lists: [],
+    activeListId: "shopping",
+    itemUses: {},
+    customItems: [],
+    lastLists: {},
+    googleFeeds: [],
+  };
+}
 export function reduceRoom(
   room: { seq: number; doc: BoardDoc | null; ops: StoredOp[] },
   incoming: BoardOp[],
@@ -39,7 +58,7 @@ export function reduceRoom(
     seq += 1;
     const stored = { ...op, seq };
     accepted.push(stored);
-    doc = doc ? applyOps(doc, [op]) : op.kind === "snapshot" ? op.doc : null;
+    doc = applyOps(doc ?? blankBoard(), [op]);
   }
   return { room: { seq, doc, ops: [...room.ops, ...accepted].slice(-400) }, accepted };
 }
@@ -125,7 +144,7 @@ export function diffBoard(prev: BoardDoc, next: BoardDoc): BoardOp[] {
 export function applyOps(doc: BoardDoc, ops: BoardOp[]): BoardDoc {
   let next = doc;
   for (const op of ops) {
-    if (op.kind === "snapshot") next = op.doc;
+    if (op.kind === "snapshot") next = withoutDemo(op.doc);
     else if (op.kind === "meta") {
       next = {
         ...next,
@@ -135,6 +154,7 @@ export function applyOps(doc: BoardDoc, ops: BoardOp[]): BoardDoc {
       };
     } else if (op.kind === "people") next = { ...next, people: op.people };
     else if (op.kind === "event.put") {
+      if (op.event.id.startsWith("seed-")) continue;
       const exists = next.events.some((event) => event.id === op.event.id);
       next = {
         ...next,

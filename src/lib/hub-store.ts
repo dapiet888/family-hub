@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { addDays, format, startOfDay } from "date-fns";
 import { SHOPPING_CATALOGUE } from "./catalogue";
 import { isHubTheme, type HubTheme } from "./themes";
 import type { GoogleFeed } from "./google-feeds";
@@ -136,103 +135,6 @@ function rememberLast(
   return lastLists;
 }
 
-function atTime(day: Date, hour: number, minute: number) {
-  const ymd = format(day, "yyyy-MM-dd");
-  const hh = String(hour).padStart(2, "0");
-  const mm = String(minute).padStart(2, "0");
-  const noonUtc = new Date(`${ymd}T12:00:00Z`);
-  const londonNoonHour = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: "Europe/London",
-      hour: "2-digit",
-      hour12: false,
-      hourCycle: "h23",
-    }).format(noonUtc),
-  );
-  const offset = londonNoonHour - 12;
-  const sign = offset >= 0 ? "+" : "-";
-  const off = String(Math.abs(offset)).padStart(2, "0");
-  return new Date(`${ymd}T${hh}:${mm}:00${sign}${off}:00`).toISOString();
-}
-
-function seedEvents(now: Date): HubEvent[] {
-  const today = startOfDay(now);
-  const d = (n: number) => addDays(today, n);
-  return [
-    {
-      id: "seed-school-run",
-      title: "School run",
-      start: atTime(d(0), 8, 10),
-      end: atTime(d(0), 8, 40),
-      location: "School gate",
-      personId: "p1",
-      source: "local",
-    },
-    {
-      id: "seed-pickup",
-      title: "Pickup",
-      start: atTime(d(0), 15, 40),
-      end: atTime(d(0), 16, 10),
-      location: "School gate",
-      personId: "p2",
-      source: "local",
-    },
-    {
-      id: "seed-football",
-      title: "Football club",
-      start: atTime(d(0), 16, 30),
-      end: atTime(d(0), 17, 30),
-      location: "Playing fields",
-      personId: "p3",
-      source: "local",
-    },
-    {
-      id: "seed-assembly",
-      title: "Class assembly",
-      start: atTime(d(1), 9, 0),
-      end: atTime(d(1), 9, 40),
-      location: "Hall",
-      personId: "p4",
-      source: "local",
-    },
-    {
-      id: "seed-swim",
-      title: "Swimming",
-      start: atTime(d(2), 18, 0),
-      end: atTime(d(2), 18, 45),
-      location: "Leisure centre",
-      personId: "p4",
-      source: "local",
-    },
-    {
-      id: "seed-dentist",
-      title: "Dentist",
-      start: atTime(d(3), 10, 30),
-      end: atTime(d(3), 11, 0),
-      location: "High Street practice",
-      personId: "p3",
-      source: "local",
-    },
-    {
-      id: "seed-shop",
-      title: "Food shop",
-      start: atTime(d(5), 9, 0),
-      end: atTime(d(5), 10, 0),
-      location: "Tesco",
-      personId: "p1",
-      source: "local",
-    },
-    {
-      id: "seed-pe",
-      title: "PE kit",
-      start: format(d(2), "yyyy-MM-dd"),
-      allDay: true,
-      personId: "p3",
-      source: "local",
-    },
-  ];
-}
-
 function seedLists(): HubList[] {
   return [
     {
@@ -313,7 +215,7 @@ export const useHubStore = create<HubState>()(
       timezone: "Europe/London",
       theme: "paper",
       people: DEFAULT_PEOPLE,
-      events: seedEvents(new Date()),
+      events: [],
       lists: seedLists(),
       activeListId: "shopping",
       personFilter: null,
@@ -526,14 +428,7 @@ export const useHubStore = create<HubState>()(
       name: "family-hub-v1",
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        const fresh = seedEvents(new Date());
-        const map = new Map(fresh.map((event) => [event.id, event]));
-        state.events = state.events.map((event) => {
-          const next = map.get(event.id);
-          return next
-            ? { ...event, start: next.start, end: next.end, allDay: next.allDay }
-            : event;
-        });
+        state.events = state.events.filter((event) => !event.id.startsWith("seed-"));
         state.itemUses ??= {};
         state.customItems ??= [];
         state.lastLists ??= {};

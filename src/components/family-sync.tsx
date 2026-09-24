@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useHubStore } from "@/lib/hub-store";
 import { pullFamily } from "@/lib/sync/api";
-import { isFamilyCode, newFamilyCode } from "@/lib/sync/board";
+import { isFamilyCode, newFamilyCode, withoutDemo } from "@/lib/sync/board";
 import { runQuiet, toBoard, useSyncStatus } from "@/lib/sync/client";
 
 export function FamilySyncPanel() {
@@ -16,8 +16,12 @@ export function FamilySyncPanel() {
 
   function start() {
     const code = newFamilyCode();
+    const doc = withoutDemo(toBoard());
     setSync(code, 0);
-    queueOps([{ id: crypto.randomUUID(), kind: "snapshot", doc: toBoard() }]);
+    if (doc.events.length !== useHubStore.getState().events.length) {
+      useHubStore.setState({ events: doc.events });
+    }
+    queueOps([{ id: crypto.randomUUID(), kind: "snapshot", doc }]);
     toast("Family sync is on. Put this code on the other screens.");
   }
 
@@ -31,13 +35,14 @@ export function FamilySyncPanel() {
     try {
       const pulled = await pullFamily({ data: { code, after: 0 } });
       if (pulled.doc) {
+        const doc = withoutDemo(pulled.doc);
         runQuiet(() => {
-          useHubStore.getState().applyBoard(pulled.doc!);
+          useHubStore.getState().applyBoard(doc);
           useHubStore.getState().setSyncSeq(pulled.seq);
         });
         toast("Joined the family board");
       } else {
-        queueOps([{ id: crypto.randomUUID(), kind: "snapshot", doc: toBoard() }]);
+        queueOps([{ id: crypto.randomUUID(), kind: "snapshot", doc: withoutDemo(toBoard()) }]);
         toast("This code is new. The board will start from this screen.");
       }
     } catch {

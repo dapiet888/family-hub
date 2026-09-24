@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useHubStore } from "@/lib/hub-store";
 import { pullFamily, pushFamily } from "@/lib/sync/api";
-import { diffBoard, type BoardDoc } from "@/lib/sync/board";
+import { diffBoard, withoutDemo, type BoardDoc, type BoardOp } from "@/lib/sync/board";
 
 export function toBoard(): BoardDoc {
   const state = useHubStore.getState();
@@ -53,13 +53,25 @@ export function useSyncStatus() {
 
 export function useFamilySync() {
   const syncCode = useHubStore((s) => s.syncCode);
+  const hydrated = useSyncExternalStore(
+    (listener) => useHubStore.persist.onFinishHydration(() => listener()),
+    () => useHubStore.persist.hasHydrated(),
+    () => false,
+  );
 
   useEffect(() => {
-    if (!syncCode) {
-      setStatus("off");
+    if (!hydrated || !syncCode) {
+      if (!syncCode) setStatus("off");
       return;
     }
     let stop = false;
+    if (!localStorage.getItem("family-hub-demo-cleared")) {
+      localStorage.setItem("family-hub-demo-cleared", "1");
+      useHubStore.setState({
+        events: useHubStore.getState().events.filter((event) => !event.id.startsWith("seed-")),
+        outbox: [],
+      });
+    }
     let prev = toBoard();
     const unsub = useHubStore.subscribe(() => {
       if (applying || !useHubStore.getState().syncCode) {
@@ -71,6 +83,21 @@ export function useFamilySync() {
       prev = next;
       if (ops.length) useHubStore.getState().queueOps(ops);
     });
+
+    let repaired = false;
+    const publish = async (doc: BoardDoc) => {
+      const op: BoardOp = { id: crypto.randomUUID(), kind: "snapshot", doc: withoutDemo(doc) };
+      const pushed = await pushFamily({ data: { code: syncCode, ops: [op] } });
+      if (stop) return;
+      runQuiet(() => {
+        useHubStore.getState().applyBoard(withoutDemo(pushed.doc ?? doc));
+        useHubStore.getState().ackOps(
+          useHubStore.getState().outbox.map((item) => item.id),
+          pushed.seq,
+        );
+      });
+      prev = toBoard();
+    };
 
     const flush = async () => {
       const state = useHubStore.getState();
@@ -89,9 +116,19 @@ export function useFamilySync() {
         if (!current.syncCode) return;
         const pulled = await pullFamily({ data: { code: current.syncCode, after: current.syncSeq } });
         if (stop) return;
-        if (pulled.doc && pulled.seq !== current.syncSeq) {
+        const remote = pulled.doc ? withoutDemo(pulled.doc) : null;
+        const hadDemo = pulled.doc?.events.some((event) => event.id.startsWith("seed-")) ?? false;
+        const local = withoutDemo(toBoard());
+        const keepLocal = !remote || hadDemo || (remote.events.length === 0 && local.events.length > 0);
+        if (keepLocal && !repaired) {
+          repaired = true;
+          const ids = new Map(local.events.map((event) => [event.id, event]));
+          for (const event of remote?.events ?? []) if (!ids.has(event.id)) ids.set(event.id, event);
+          const base = local.events.length >= (remote?.events.length ?? 0) ? local : remote!;
+          await publish({ ...base, events: [...ids.values()] });
+        } else if (remote && pulled.seq !== current.syncSeq) {
           runQuiet(() => {
-            useHubStore.getState().applyBoard(pulled.doc!);
+            useHubStore.getState().applyBoard(remote);
             useHubStore.getState().setSyncSeq(pulled.seq);
           });
           prev = toBoard();
@@ -111,5 +148,5 @@ export function useFamilySync() {
       window.clearInterval(timer);
       unsub();
     };
-  }, [syncCode]);
+  }, [hydrated, syncCode]);
 }
