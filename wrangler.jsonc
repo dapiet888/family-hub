@@ -14,5 +14,12 @@
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["HouseholdBoard"] }
-  ]
+  ],
+  // Skyler bridge (src/lib/bridge): the squad reads and drops through this D1
+  // database with Pete's Cloudflare account; the cron applies drops to the
+  // household board and refreshes the snapshot. FAMILY_CODE is a Worker secret.
+  "d1_databases": [
+    { "binding": "BRIDGE", "database_name": "skyler-bridge", "database_id": "fa0aa711-46c0-4e4d-8ea7-c38f6c8e5e29" }
+  ],
+  "triggers": { "crons": ["*/5 * * * *"] }
 }
